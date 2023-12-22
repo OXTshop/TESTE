@@ -181,9 +181,9 @@ app.get('/', (req, res) => {
             
             <nav>
                 <a href="/montar-kit">Montar Kit</a>
-                <a href="#">FALTA</a>
-                <a href="#">FALTA</a>
-                <a href="#">FALTA</a>
+                <a href="/adicionar-produto">adicionar</a>
+                <a href="/remover-produto">Remover</a>
+                <a href="/editar-todos-produtos">EDITAR</a>
             </nav>
         
           <h1>Lista de Produtos</h1>
@@ -491,8 +491,237 @@ app.get('/montar-kit', (req, res) => {
     });
   });
 
+// Rota para exibir o formulário de adição de produtos
+app.get('/adicionar-produto', (req, res) => {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Adicionar Produto</title>
+      </head>
+      <body>
+          <h1>Adicionar Produto</h1>
+          <form method="post" action="/adicionar-produto">
+              <label for="nome">Nome do Produto:</label>
+              <input type="text" name="nome" id="nome" required>
+  
+              <label for="sku">SKU:</label>
+              <input type="text" name="sku" id="sku" required>
+  
+              <label for="quantidade">Quantidade:</label>
+              <input type="number" name="quantidade" id="quantidade" required>
+
+              <label for="VALr">Valor:</label>
+              <input type="text" name="VALr" id="VAlr" required>
+  
+              <button type="submit">Adicionar Produto</button>
+          </form>
+      </body>
+      </html>
+    `;
+  
+    res.send(html);
+  });
+
+  // Rota para processar a adição de produtos
+app.post('/adicionar-produto', (req, res) => {
+    const { nome, sku, quantidade, VALr } = req.body;
+  
+    const sql = 'INSERT INTO Produtos_levantamento (Produto, SKU, Quantidade, VALOR) VALUES (?, ?, ?, ?)';
+    db.run(sql, [nome, sku, quantidade, VALr], function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+  
+      console.log(`Produto adicionado: ${nome}, SKU: ${sku}, Quantidade: ${quantidade}, Valor: ${VALr}`);
+      res.redirect('/');
+    });
+  });
+
+// Rota para exibir o formulário de edição de produtos
+app.get('/editar-produto/:produto', (req, res) => {
+    const produtoNome = req.params.produto;
+
+    db.get('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento WHERE Produto = ?', [produtoNome], (err, row) => {
+        if (err) {
+            return console.error(err.message);
+        }
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Editar Produto</title>
+            </head>
+            <body>
+                <h1>Editar Produto</h1>
+                <form method="post" action="/editar-produto/${produtoNome}">
+                    <label for="nome">Nome do Produto:</label>
+                    <input type="text" name="nome" id="nome" value="${row.Produto}" required>
+
+                    <label for="sku">SKU:</label>
+                    <input type="text" name="sku" id="sku" value="${row.SKU}" required>
+
+                    <label for="quantidade">Quantidade:</label>
+                    <input type="number" name="quantidade" id="quantidade" value="${row.Quantidade}" required>
+
+                    <label for="VALr">Valor:</label>
+                    <input type="text" name="VALr" id="VALr" value="${row.VALOR}" required>
+
+                    <button type="submit">Salvar Alterações</button>
+                </form>
+            </body>
+            </html>
+        `;
+
+        res.send(html);
+    });
+});
+
+// Rota para processar a edição de produtos
+app.post('/editar-produto/:produto', (req, res) => {
+    const produtoAntigo = req.params.produto;
+    const { nome, sku, quantidade, VALr } = req.body;
+
+    const sql = 'UPDATE Produtos_levantamento SET Produto = ?, SKU = ?, Quantidade = ?, VALOR = ? WHERE Produto = ?';
+    db.run(sql, [nome, sku, quantidade, VALr, produtoAntigo], function (err) {
+        if (err) {
+            return console.error(err.message);
+        }
+
+        console.log(`Produto editado: ${produtoAntigo} -> ${nome}, SKU: ${sku}, Quantidade: ${quantidade}, Valor: ${VALr}`);
+        res.redirect('/');
+    });
+});
+
+
+  // Rota para exibir o formulário de remoção de produtos
+app.get('/remover-produto', (req, res) => {
+    db.all('SELECT Produto FROM Produtos_levantamento', (err, produtos) => {
+      if (err) {
+        return console.error(err.message);
+      }
+  
+      const produtosOptions = produtos.map(row => `
+        <option value="${row.Produto}">${row.Produto}</option>`).join('');
+  
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Remover Produto</title>
+        </head>
+        <body>
+            <h1>Remover Produto</h1>
+            <form method="post" action="/remover-produto">
+                <label for="produto">Escolha um produto:</label>
+                <select name="produto" id="produto" required>
+                    ${produtosOptions}
+                </select>
+  
+                <button type="submit">Remover Produto</button>
+            </form>
+        </body>
+        </html>
+      `;
+  
+      res.send(html);
+    });
+  });
+
+  app.get('/editar-todos-produtos', (req, res) => {
+    db.all('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento', (err, rows) => {
+        if (err) {
+            return console.error(err.message);
+        }
+
+        const produtosHtml = rows.map(row => `
+            <tr>
+                <td>${row.Produto}</td>
+                <td>${row.Quantidade}</td>
+                <td><input type="text" name="sku_${row.Produto}" value="${row.SKU}"></td>
+                <td>${row.EAN}</td>
+                <td><input type="text" name="valor_${row.Produto}" value="${row.VALOR}"></td>
+                <td>${row.IMG}</td>
+            </tr>`).join('');
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Editar Todos os Produtos</title>
+            </head>
+            <body>
+                <h1>Editar Todos os Produtos</h1>
+                <form method="post" action="/atualizar-todos-produtos">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>SKU</th>
+                                <th>EAN</th>
+                                <th>VALOR</th>
+                                <th>IMG</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${produtosHtml}
+                        </tbody>
+                    </table>
+                    <button type="submit">Salvar Alterações</button>
+                </form>
+            </body>
+            </html>
+        `;
+
+        res.send(html);
+    });
+});
+
+app.post('/atualizar-todos-produtos', (req, res) => {
+    const updates = [];
+
+    // Itera sobre os parâmetros enviados no corpo da solicitação
+    Object.keys(req.body).forEach(param => {
+        const [field, produto] = param.split('_');
+
+        if (field && produto) {
+            // Adiciona as atualizações à lista
+            updates.push({
+                field,
+                produto,
+                value: req.body[param]
+            });
+        }
+    });
+
+    // Executa as atualizações no banco de dados
+    updates.forEach(update => {
+        const { field, produto, value } = update;
+
+        let sql;
+        if (field === 'sku') {
+            sql = 'UPDATE Produtos_levantamento SET SKU = ? WHERE Produto = ?';
+        } else if (field === 'valor') {
+            sql = 'UPDATE Produtos_levantamento SET VALOR = ? WHERE Produto = ?';
+        }
+
+        if (sql) {
+            db.run(sql, [value, produto], function (err) {
+                if (err) {
+                    return console.error(err.message);
+                }
+                console.log(`Produto ${produto} - ${field} atualizado para ${value}`);
+            });
+        }
+    });
+
+    res.redirect('/editar-todos-produtos');
+});
+
 
 // Inicie o servidor na porta especificada
-app.listen(port, '192.168.0.104',() => {
-    console.log(`Servidor está rodando em http://192.168.0.104:${port}`);
+app.listen(port, '192.168.0.7',() => {
+    console.log(`Servidor está rodando em http://192.168.0.7:${port}`);
   });
