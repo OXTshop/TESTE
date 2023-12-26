@@ -170,19 +170,45 @@ app.get('/', (req, res) => {
         margin: 20px;
     }
 
+    form {
+        background-color: #fff;
+        padding: 40px; /* Aumente o padding para aumentar o tamanho do formulário */
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 400px; /* Ajuste a largura conforme necessário */
+    }
+
+    h1 {
+        display: none; /* Oculte o título no formulário */
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 16px;
+        color: #333;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        box-sizing: border-box;
+    }
+
     button {
-        font-size: 1.2em;
-        margin-top: 10px;
         background-color: #333;
         color: #fff;
-        cursor: pointer;
-        border: none;
         padding: 12px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        font-size: 16px;
         border-radius: 5px;
-        width: 50%;
-        text-align: center;
-        align-self: center;
-        transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+        background-color: #ff6600;
     }
 
     button:hover {
@@ -354,98 +380,97 @@ app.get('/montar-kit', (req, res) => {
         <head>
             <title>Montar Kit</title>
             <style>
-                /* Adicione os estilos CSS aqui */
-                #resultado-final {
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                    font-size: 1.2em;
-                    color: #333;
-                    border-top: 2px solid #ddd;
-                    padding-top: 10px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-            
-                #resultado-final span {
-                    color: #4caf50;
-                }
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 0;
-                    padding: 0;
-                }
-            
-                header {
-                    background-color: #333;
-                    color: white;
-                    text-align: center;
-                    padding: 1em;
-                }
-            
-                #formMontarKit {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }
-            
-                label {
-                    display: block;
-                    margin-bottom: 5px;
-                }
-            
-                select, input {
-                    width: 100%;
-                    padding: 8px;
-                    margin-bottom: 15px;
-                    box-sizing: border-box;
-                }
-            
-                button {
-                    background-color: #4caf50;
-                    color: white;
-                    padding: 10px;
-                    border: none;
-                    cursor: pointer;
-                }
-            
-                button:hover {
-                    background-color: #45a049;
-                }
-            
-                #resultado {
-                    margin-top: 20px;
-                }
-            
-                p {
-                    margin: 0;
-                    padding: 8px;
-                    border: 1px solid #ddd;
-                    background-color: #f9f9f9;
-                    position: relative;
-                }
-            
-                .remover {
-                    background-color: red;
-                    color: white;
-                    padding: 5px 10px;
-                    position: absolute;
-                    top: 50%;
-                    right: 0;
-                    transform: translateY(-50%);
-                    cursor: pointer;
-                }
-            
-                .remover:hover {
-                    background-color: darkred;
-                }
-            
-                #resultado-final {
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                }
+            /* Adicione os estilos CSS aqui */
+            #resultado-final {
+                font-weight: bold;
+                margin-bottom: 10px;
+                font-size: 1.2em;
+                color: #333;
+                border-top: 2px solid #ddd;
+                padding-top: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        
+            #resultado-final span {
+                color: #4caf50;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+            }
+        
+            header {
+                background-color: #333;
+                color: white;
+                text-align: center;
+                padding: 1em;
+            }
+        
+            #formMontarKit {
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+        
+            label {
+                display: block;
+                margin-bottom: 5px;
+            }
+        
+            select, input {
+                width: 100%;
+                padding: 8px;
+                margin-bottom: 15px;
+                box-sizing: border-box;
+            }
+        
+            button {
+                background-color: #4caf50;
+                color: white;
+                padding: 10px;
+                border: none;
+                cursor: pointer;
+            }
+        
+            button:hover {
+                background-color: #45a049;
+            }
+        
+            #resultado {
+                margin-top: 20px;
+            }
+        
+            p {
+                margin: 0;
+                padding: 8px;
+                border: 1px solid #ddd;
+                background-color: #f9f9f9;
+                position: relative;
+            }
+        
+            .remover {
+                background-color: red;
+                color: white;
+                padding: 5px 10px;
+                position: absolute;
+                top: 50%;
+                right: 0;
+                transform: translateY(-50%);
+                cursor: pointer;
+            }
+        
+            .remover:hover {
+                background-color: darkred;
+            }
+        
+            #resultado-final {
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
 
-                
             </style>
         </head>
         <body>
@@ -473,23 +498,25 @@ app.get('/montar-kit', (req, res) => {
             <div id="resultado"></div>
   
             <script>
-                function adicionarProduto() {
-                    const selectProduto = document.getElementById('produto');
-                    const inputQuantidade = document.getElementById('quantidade');
-                    const resultado = document.getElementById('resultado');
+            function adicionarProduto() {
+                const selectProduto = document.getElementById('produto');
+                const inputQuantidade = document.getElementById('quantidade');
+                const resultado = document.getElementById('resultado');
             
-                    const produtoSelecionado = selectProduto.value;
-                    const quantidade = inputQuantidade.value;
+                const produtoSelecionado = selectProduto.value;
+                const quantidade = inputQuantidade.value;
+                const valorUnitario = selectProduto.options[selectProduto.selectedIndex].getAttribute('data-valor');
             
-                    if (produtoSelecionado && quantidade) {
-                        const novoItem = document.createElement('p');
-                        novoItem.innerHTML = quantidade + 'x ' + produtoSelecionado + ' <span class="remover" onclick="removerProduto(this)">REMOVER</span>';
-                        novoItem.setAttribute('data-quantidade', quantidade);
-                        novoItem.setAttribute('data-valor', selectProduto.options[selectProduto.selectedIndex].getAttribute('data-valor'));
-                        resultado.appendChild(novoItem);
-                    }
+                if (produtoSelecionado && quantidade) {
+                    const precoTotal = (quantidade * valorUnitario).toFixed(2);
+                    const novoItem = document.createElement('p');
+                    novoItem.innerHTML = quantidade + 'x ' + produtoSelecionado + ' - Valor Unitário: R$ ' + valorUnitario + ' - Preço Total: R$ ' + precoTotal + ' <span class="remover" onclick="removerProduto(this)">REMOVER</span>';
+                    novoItem.setAttribute('data-quantidade', quantidade);
+                    novoItem.setAttribute('data-valor', valorUnitario);
+                    resultado.appendChild(novoItem);
                 }
-            
+            }
+
                 function calcularValorFinal() {
                     const resultado = document.getElementById('resultado');
                     const linhasProdutos = resultado.querySelectorAll('p');
@@ -687,7 +714,6 @@ app.post('/remover-produto', (req, res) => {
         res.redirect('/');
     });
 });
-
 
 // Rota para exibir o formulário de remoção de produtos
 app.get('/remover-produto', (req, res) => {
