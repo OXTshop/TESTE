@@ -1,6 +1,8 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
+const fs = require('fs');
+const pdfkit = require('pdfkit');
 
 const app = express();
 const port = 80;
@@ -9,22 +11,24 @@ const port = 80;
 const db = new sqlite3.Database('produto.db');
 
 // Middleware para analisar dados de formulário
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
 
 // Servir arquivos estáticos da pasta 'public'
 app.use(express.static('public'));
 
 // Rota para exibir a lista de produtos com dados dinâmicos
 app.get('/', (req, res) => {
-  const clientIP = req.connection.remoteAddress;
-  console.log(`Alguém acessou a página a partir do IP: ${clientIP}`);
-  
-  db.all('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento', (err, rows) => {
-    if (err) {
-      return console.error(err.message);
-    }
+    const clientIP = req.connection.remoteAddress;
+    console.log(`Alguém acessou a página a partir do IP: ${clientIP}`);
 
-    const dataHtml = rows.map(row => `
+    db.all('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento', (err, rows) => {
+        if (err) {
+            return console.error(err.message);
+        }
+
+        const dataHtml = rows.map(row => `
     <tr>
       <td>${row.Produto}</td>
       <td>${row.Quantidade}</td>
@@ -34,18 +38,18 @@ app.get('/', (req, res) => {
       <td>${row.IMG}</td>
       <td><a href="/detalhes/${row.Produto}">Detalhes</a></td>
     </tr>`).join('');
-      
-    // Consulta o banco de dados para obter a lista de produtos
-    db.all('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento', (err, produtos) => {
-      if (err) {
-        return console.error(err.message);
-      }
 
-      const produtosOptions = produtos.map(row => `
+        // Consulta o banco de dados para obter a lista de produtos
+        db.all('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento', (err, produtos) => {
+            if (err) {
+                return console.error(err.message);
+            }
+
+            const produtosOptions = produtos.map(row => `
         
         <option value="${row.Produto}">${row.Produto},    ${row.Quantidade} Und</option>`).join('');
 
-      const html = `
+            const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -54,126 +58,143 @@ app.get('/', (req, res) => {
       </head>
       <body>
       <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-    
-        header {
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 0.5em;
-            margin: 0; /* Adicionado para remover a margem padrão */
-        }
-    
-        nav {
-            background-color: #555;
-            color: #fff;
-            text-align: center;
-            padding: 0.5em;
-        }
-    
-        nav a {
-            text-decoration: none;
-            color: #fff;
-            margin: 0 15px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-    
-        h1 {
-            font-family: Arial, sans-serif;
-            font-size: 2em;
-            color: #333;
-            text-align: center;
-            margin-top: 20px;
-        }
-    
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 1px solid #ccc;
-            margin: 20px 0;
-        }
-    
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px;
-            text-align: left;
-        }
-    
-        th {
-            background-color: #f2f2f2;
-            text-transform: uppercase;
-        }
-    
-        tr:nth-child(even) {
-            background-color: #f5f5f5;
-        }
-    
-        tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
-    
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin: 20px;
-        }
-    
-        label {
-            font-size: 1.2em;
-            margin-bottom: 5px;
-            width: 100%;
-            text-align: left;
-        }
-    
-        select, input, button {
-            height: 30px;
-            background-color: #f5f5f5;
-            color: #333;
-            border: 1px solid #ccc;
-            font-size: 1em;
-            padding: 5px;
-            width: calc(100% - 10px);
-            box-sizing: border-box;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin: 20px;
-          }
-        
-          button {
-            font-size: 1.2em;
-            margin-top: 10px;
-            background-color: #333;
-            color: #fff;
-            cursor: pointer;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            width: 50%; /* Defina a largura desejada */
-            text-align: center;
-            align-self: center; /* Adicionado para centralizar verticalmente */
-          }
-        
-        button:hover {
-            background-color: #ff6600;
-        }
-    
-        .remover {
-            background-color: red;
-            height: 10px;
-            width: 40px;
-        }
+      body {
+        font-family: 'Arial, sans-serif';
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+    }
+
+    header {
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        padding: 1em;
+        margin: 0;
+    }
+
+    nav {
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        padding: 0.5em;
+    }
+
+    nav a {
+        text-decoration: none;
+        color: #fff;
+        margin: 0 15px;
+        font-weight: bold;
+        text-transform: uppercase;
+        transition: color 0.3s ease;
+    }
+
+    nav a:hover {
+        color: #ff6600;
+    }
+
+    h1 {
+        font-family: 'Arial, sans-serif';
+        font-size: 2em;
+        color: #333;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #ccc;
+        margin: 20px 0;
+    }
+
+    th, td {
+        border: 1px solid #ccc;
+        padding: 12px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        text-transform: uppercase;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f5f5f5;
+    }
+
+    tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin: 20px;
+    }
+
+    label {
+        font-size: 1.2em;
+        margin-left: 8px;
+        margin-bottom: 8px;
+        width: 100%;
+        text-align: left;
+        color: #333;
+        font-weight: bold;
+        transition: color 0.3s ease;
+    }
+
+    label:hover {
+        color: #ff6600;
+    }
+
+    select, input, button {
+        height: 40px;
+        background-color: #ffffff;
+        color: #333;
+        border: 1px solid #ccc;
+        font-size: 1em;
+        padding: 8px;
+        width: calc(100% - 16px);
+        box-sizing: border-box;
+        margin-left: 8px;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin: 20px;
+    }
+
+    button {
+        font-size: 1.2em;
+        margin-top: 10px;
+        background-color: #333;
+        color: #fff;
+        cursor: pointer;
+        border: none;
+        padding: 12px;
+        border-radius: 5px;
+        width: 50%;
+        text-align: center;
+        align-self: center;
+        transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+        background-color: #ff6600;
+    }
+
+    .remover {
+        background-color: red;
+        height: 10px;
+        width: 40px;
+    }
+
         </style>
         <header>
                 <h1>Restaurante Exemplo</h1>
@@ -221,23 +242,23 @@ app.get('/', (req, res) => {
       </body>
       </html>`;
 
-      res.send(html);
+            res.send(html);
+        });
     });
-  });
 });
 // Rota para exibir os detalhes de um produto específico
 app.get('/detalhes/:produto', (req, res) => {
     const produtoNome = req.params.produto;
-  
+
     db.get('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento WHERE Produto = ?', [produtoNome], (err, row) => {
-      if (err) {
-        return console.error(err.message);
-      }
-  
-      // Calcula o valor total multiplicando a quantidade pelo valor unitário
-      const valorTotal = row.Quantidade * row.VALOR;
-  
-      const detalhesHtml = `
+        if (err) {
+            return console.error(err.message);
+        }
+
+        // Calcula o valor total multiplicando a quantidade pelo valor unitário
+        const valorTotal = row.Quantidade * row.VALOR;
+
+        const detalhesHtml = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -286,44 +307,48 @@ app.get('/detalhes/:produto', (req, res) => {
       </html>
     `;
 
-    res.send(detalhesHtml);
-  });
+        res.send(detalhesHtml);
+    });
 });
 
 // Rota para processar a atualização da quantidade
 app.post('/atualizar', (req, res) => {
-  const { produto, quantidade, acao, IMG } = req.body;
-  
-  let sql;
-  if (acao === 'adicionar') {
-    sql = 'UPDATE Produtos_levantamento SET Quantidade = Quantidade + ? WHERE Produto = ?';
-  } else {
-    sql = 'UPDATE Produtos_levantamento SET Quantidade = Quantidade - ? WHERE Produto = ?';
-    
-  }
+    const {
+        produto,
+        quantidade,
+        acao,
+        IMG
+    } = req.body;
 
-  db.run(sql, [quantidade, produto], function(err) {
-    if (err) {
-      return console.error(err.message);
+    let sql;
+    if (acao === 'adicionar') {
+        sql = 'UPDATE Produtos_levantamento SET Quantidade = Quantidade + ? WHERE Produto = ?';
+    } else {
+        sql = 'UPDATE Produtos_levantamento SET Quantidade = Quantidade - ? WHERE Produto = ?';
+
     }
-    
-    console.log(`${acao.charAt(0).toUpperCase() + acao.slice(1)} quantidade de ${quantidade} para ${produto}`);
-    res.redirect('/');
-  });
+
+    db.run(sql, [quantidade, produto], function (err) {
+        if (err) {
+            return console.error(err.message);
+        }
+
+        console.log(`${acao.charAt(0).toUpperCase() + acao.slice(1)} quantidade de ${quantidade} para ${produto}`);
+        res.redirect('/');
+    });
 });
 
 // Rota para a página de montagem de kits
-// Rota para a página de montagem de kits
 app.get('/montar-kit', (req, res) => {
     db.all('SELECT Produto, Quantidade, VALOR FROM Produtos_levantamento', (err, produtos) => {
-      if (err) {
-        return console.error(err.message);
-      }
-  
-      const produtosOptions = produtos.map(row => `
+        if (err) {
+            return console.error(err.message);
+        }
+
+        const produtosOptions = produtos.map(row => `
         <option value="${row.Produto}" data-valor="${row.VALOR}">${row.Produto} - ${row.VALOR}</option>`).join('');
-  
-      const html = `
+
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -419,6 +444,8 @@ app.get('/montar-kit', (req, res) => {
                     font-weight: bold;
                     margin-bottom: 10px;
                 }
+
+                
             </style>
         </head>
         <body>
@@ -438,6 +465,8 @@ app.get('/montar-kit', (req, res) => {
   
                 <button type="button" onclick="adicionarProduto()">Adicionar Produto</button>
                 <button type="button" onclick="calcularValorFinal()">Calcular Valor Final</button>
+                <button type="button" onclick="gerarPDF()">Gerar PDF</button>
+
                 <div id="resultado-final"></div>
             </form>
   
@@ -486,10 +515,11 @@ app.get('/montar-kit', (req, res) => {
         </body>
         </html>
       `;
-  
-      res.send(html);
+
+        res.send(html);
     });
-  });
+});
+
 
 // Rota para exibir o formulário de adição de produtos
 app.get('/adicionar-produto', (req, res) => {
@@ -499,6 +529,66 @@ app.get('/adicionar-produto', (req, res) => {
       <head>
           <title>Adicionar Produto</title>
       </head>
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        nav {
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            padding: 0.5em;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 40px; /* Aumente o padding para aumentar o tamanho do formulário */
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px; /* Ajuste a largura conforme necessário */
+        }
+
+        h1 {
+            display: none; /* Oculte o título no formulário */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #333;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #ff6600;
+        }
+        </style>
       <body>
           <h1>Adicionar Produto</h1>
           <form method="post" action="/adicionar-produto">
@@ -519,24 +609,29 @@ app.get('/adicionar-produto', (req, res) => {
       </body>
       </html>
     `;
-  
-    res.send(html);
-  });
 
-  // Rota para processar a adição de produtos
+    res.send(html);
+});
+
+// Rota para processar a adição de produtos
 app.post('/adicionar-produto', (req, res) => {
-    const { nome, sku, quantidade, VALr } = req.body;
-  
+    const {
+        nome,
+        sku,
+        quantidade,
+        VALr
+    } = req.body;
+
     const sql = 'INSERT INTO Produtos_levantamento (Produto, SKU, Quantidade, VALOR) VALUES (?, ?, ?, ?)';
     db.run(sql, [nome, sku, quantidade, VALr], function (err) {
-      if (err) {
-        return console.error(err.message);
-      }
-  
-      console.log(`Produto adicionado: ${nome}, SKU: ${sku}, Quantidade: ${quantidade}, Valor: ${VALr}`);
-      res.redirect('/');
+        if (err) {
+            return console.error(err.message);
+        }
+
+        console.log(`Produto adicionado: ${nome}, SKU: ${sku}, Quantidade: ${quantidade}, Valor: ${VALr}`);
+        res.redirect('/');
     });
-  });
+});
 
 // Rota para exibir o formulário de edição de produtos
 app.get('/editar-produto/:produto', (req, res) => {
@@ -578,39 +673,98 @@ app.get('/editar-produto/:produto', (req, res) => {
     });
 });
 
-// Rota para processar a edição de produtos
-app.post('/editar-produto/:produto', (req, res) => {
-    const produtoAntigo = req.params.produto;
-    const { nome, sku, quantidade, VALr } = req.body;
+// Rota para processar a remoção de produtos
+app.post('/remover-produto', (req, res) => {
+    const produto = req.body.produto;
 
-    const sql = 'UPDATE Produtos_levantamento SET Produto = ?, SKU = ?, Quantidade = ?, VALOR = ? WHERE Produto = ?';
-    db.run(sql, [nome, sku, quantidade, VALr, produtoAntigo], function (err) {
+    const sql = 'DELETE FROM Produtos_levantamento WHERE Produto = ?';
+    db.run(sql, [produto], function (err) {
         if (err) {
             return console.error(err.message);
         }
 
-        console.log(`Produto editado: ${produtoAntigo} -> ${nome}, SKU: ${sku}, Quantidade: ${quantidade}, Valor: ${VALr}`);
+        console.log(`Produto removido: ${produto}`);
         res.redirect('/');
     });
 });
 
 
-  // Rota para exibir o formulário de remoção de produtos
+// Rota para exibir o formulário de remoção de produtos
 app.get('/remover-produto', (req, res) => {
     db.all('SELECT Produto FROM Produtos_levantamento', (err, produtos) => {
-      if (err) {
-        return console.error(err.message);
-      }
-  
-      const produtosOptions = produtos.map(row => `
+        if (err) {
+            return console.error(err.message);
+        }
+
+        const produtosOptions = produtos.map(row => `
         <option value="${row.Produto}">${row.Produto}</option>`).join('');
-  
-      const html = `
+
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
             <title>Remover Produto</title>
         </head>
+            <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+    
+            nav {
+                background-color: #555;
+                color: #fff;
+                text-align: center;
+                padding: 0.5em;
+            }
+    
+            form {
+                background-color: #fff;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                width: 400px;
+            }
+    
+            h1 {
+                display: none;
+            }
+    
+            label {
+                display: block;
+                margin-bottom: 8px;
+                font-size: 16px;
+                color: #333;
+            }
+    
+            select {
+                width: 100%;
+                padding: 10px;
+                margin-bottom: 15px;
+                box-sizing: border-box;
+            }
+    
+            button {
+                background-color: #333;
+                color: #fff;
+                padding: 12px;
+                border: none;
+                cursor: pointer;
+                width: 100%;
+                font-size: 16px;
+                border-radius: 5px;
+            }
+    
+            button:hover {
+                background-color: #ff6600;
+            }
+            </style>
         <body>
             <h1>Remover Produto</h1>
             <form method="post" action="/remover-produto">
@@ -624,12 +778,12 @@ app.get('/remover-produto', (req, res) => {
         </body>
         </html>
       `;
-  
-      res.send(html);
-    });
-  });
 
-  app.get('/editar-todos-produtos', (req, res) => {
+        res.send(html);
+    });
+});
+
+app.get('/editar-todos-produtos', (req, res) => {
     db.all('SELECT Produto, Quantidade, SKU, EAN, IMG, VALOR FROM Produtos_levantamento', (err, rows) => {
         if (err) {
             return console.error(err.message);
@@ -651,8 +805,81 @@ app.get('/remover-produto', (req, res) => {
             <head>
                 <title>Editar Todos os Produtos</title>
             </head>
+            <style>
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }
+    
+            form {
+                background-color: #fff;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                width: 80%;
+                margin: auto;
+            }
+    
+            h1 {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+    
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+    
+            th, td {
+                border: 1px solid #ccc;
+                padding: 12px;
+                text-align: left;
+            }
+    
+            th {
+                background-color: #f2f2f2;
+                text-transform: uppercase;
+            }
+    
+            tr:nth-child(even) {
+                background-color: #f5f5f5;
+            }
+    
+            tr:nth-child(odd) {
+                background-color: #ffffff;
+            }
+    
+            input {
+                width: 100%;
+                padding: 8px;
+                margin-bottom: 15px;
+                box-sizing: border-box;
+            }
+    
+            button {
+                background-color: #333;
+                color: #fff;
+                padding: 12px;
+                border: none;
+                cursor: pointer;
+                width: 100%;
+                font-size: 16px;
+                border-radius: 5px;
+            }
+    
+            button:hover {
+                background-color: #ff6600;
+            }
+            </style>
             <body>
-                <h1>Editar Todos os Produtos</h1>
+
                 <form method="post" action="/atualizar-todos-produtos">
                     <table>
                         <thead>
@@ -698,7 +925,11 @@ app.post('/atualizar-todos-produtos', (req, res) => {
 
     // Executa as atualizações no banco de dados
     updates.forEach(update => {
-        const { field, produto, value } = update;
+        const {
+            field,
+            produto,
+            value
+        } = update;
 
         let sql;
         if (field === 'sku') {
@@ -722,6 +953,6 @@ app.post('/atualizar-todos-produtos', (req, res) => {
 
 
 // Inicie o servidor na porta especificada
-app.listen(port, '192.168.0.7',() => {
+app.listen(port, '192.168.0.7', () => {
     console.log(`Servidor está rodando em http://192.168.0.7:${port}`);
-  });
+});
